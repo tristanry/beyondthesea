@@ -1,44 +1,21 @@
-
-function loadJSON(callback) {
-    //https://www.geekstrick.com/load-json-file-locally-using-pure-javascript/
-    var xobj = new XMLHttpRequest();
-    xobj.overrideMimeType("application/json");
-    xobj.open('GET', 'https://raw.githubusercontent.com/tristanry/beyondthesea/gh-pages/europe.json', true);
-    xobj.onreadystatechange = function () {
-        if (xobj.readyState == 4 && xobj.status == "200") {
-            // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
-            callback(xobj.responseText);
-        }
-    };
-    xobj.send(null);
-}
-
-// getting places from JSON
+// getting places from Json
 function loadPlaces(position) {
-    var venues = [];
-    var countries = [];
-    // Parsing JSON string into object
-    loadJSON(function (response) {
-        // Parsing JSON string into object
-        countries = JSON.parse(response);
-        console.log(countries);
-        countries.elements.forEach(function (country, index) {
-            venues.push({
-                nodeid: country["id"],
-                lat: country["lat"],
-                lon: country["lon"],
-                name: country["tags"]["name:fr"]
-            }
-            );
-        });
-        return venues;
-    });
+    const endpoint = "https://raw.githubusercontent.com/tristanry/beyondthesea/gh-pages/europe.json";
+    return fetch(endpoint)
+        .then((res) => {
+            return res.json()
+                .then((resp) => {
+                    return resp.elements;
+                })
+        })
+        .catch((err) => {
+            console.error('Error fetching places places', err);
+        })
 };
-
 
 window.onload = () => {
     const scene = document.querySelector('a-scene');
-    const position = {
+    const defaultPosition = {
         coords:
         {
             accuracy: 1,
@@ -50,19 +27,35 @@ window.onload = () => {
             speed: null
         }
     };
-    loadPlaces(position.coords)
-        .then(places) => {
-        places.forEach((place) => {
-            const latitude = place.lat;
-            const longitude = place.lon;
+    return navigator.geolocation.getCurrentPosition(function (position) {
+        // than use it to load from remote APIs some places nearby
+        loadPlaces(position.coords)
+            .then((places) => {
+                places.forEach((place) => {
+                    const latitude = place.lat;
+                    const longitude = place.lon;
 
-            const placeText = document.createElement('a-text');
+                    const placeText = document.createElement('a-text');
 
-            placeText.setAttribute('value', place.name);
-            placeText.setAttribute('look-at', "[gps-camera]");
-            placeText.setAttribute('scale', "12 12 12");
-            placeText.setAttribute('gps-entity-place', `latitude: ${latitude}; longitude: ${longitude};`);
-            scene.appendChild(placeText);
-        });
-    };
+                    placeText.setAttribute('value', place["tags"]["name:fr"]);
+                    placeText.setAttribute('look-at', "[gps-camera]");
+                    placeText.setAttribute('scale', "12 12 12");
+                    placeText.setAttribute('gps-entity-place', `latitude: ${latitude}; longitude: ${longitude};`);
+
+                    placeText.addEventListener('loaded', () => {
+                        window.dispatchEvent(new CustomEvent('gps-entity-place-loaded'))
+                    });
+
+                    scene.appendChild(placeText);
+                });
+            })
+    },
+        (err) => console.error('Error in retrieving position', err),
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 27000,
+        }
+    );
+
 };
