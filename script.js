@@ -35,9 +35,12 @@ window.onload = () => {
                     const latitude = place.lat;
                     const longitude = place.lon;
 
+                    const tags = place.tags;
+
+
                     const placeText = document.createElement('a-text');
 
-                    placeText.setAttribute('value', place["tags"]["name:fr"]);
+                    placeText.setAttribute('value', tags["name:fr"]);
                     placeText.setAttribute('look-at', "[gps-camera]");
                     placeText.setAttribute('scale', "12 12 12");
                     placeText.setAttribute('gps-entity-place', `latitude: ${latitude}; longitude: ${longitude};`);
@@ -47,6 +50,20 @@ window.onload = () => {
                     });
 
                     scene.appendChild(placeText);
+
+
+                    const placeMaterial = document.createElement('a-box');
+                    placeMaterial.setAttribute('material', "color: yellow");
+                    placeMaterial.setAttribute('position', "0 30 0");
+                    placeMaterial.setAttribute('gps-entity-place', `latitude: ${latitude}; longitude: ${longitude};`);
+
+                    placeMaterial.addEventListener('loaded', () => {
+                        window.dispatchEvent(new CustomEvent('gps-entity-place-loaded'))
+                    });
+
+                    scene.appendChild(placeMaterial);
+
+
                 });
             })
     },
